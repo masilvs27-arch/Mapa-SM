@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa (no oficial) de efectores de Salud Mental — Mendoza</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --ink:#1c2b2d;
+    --paper:#f6f3ec;
+    --line:#d8d0bf;
+    --teal:#2f5d5a;
+    --teal-dk:#1d3f3d;
+    --clay:#b5622f;
+    --gold:#c99a3c;
+    --slate:#516b78;
+    --plum:#6b4d75;
+    --white:#fffdf8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;font-family:'Iowan Old Style','Georgia',serif;background:var(--paper);color:var(--ink);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+
+  header{
+    background:var(--teal-dk);
+    color:var(--white);
+    padding:14px 20px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:6px;
+    border-bottom:3px solid var(--gold);
+  }
+  header{align-items:center;}
+  header h1{
+    font-family:'Iowan Old Style','Georgia',serif;
+    font-size:1.05rem;
+    font-weight:600;
+    margin:0;
+    letter-spacing:.2px;
+    line-height:1.3;
+    flex:1 1 320px;
+  }
+  .hdr-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .hdr-crisis{
+    background:#b3261e;
+    color:#fff;
+    text-decoration:none;
+    font-family:Helvetica,Arial,sans-serif;
+    font-weight:700;
+    font-size:.82rem;
+    padding:7px 12px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+  .hdr-crisis:hover,.hdr-crisis:focus-visible{background:#8f1d17;}
+  .hdr-home{
+    background:transparent;
+    color:var(--white);
+    border:1px solid rgba(255,255,255,.55);
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.78rem;
+    padding:6px 12px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .hdr-home:hover{background:rgba(255,255,255,.12);}
+  .hdr-home[hidden]{display:none;}
+
+  /* ---------- Pantalla principal ---------- */
+  #landing{
+    flex:1;
+    overflow-y:auto;
+    padding:28px 20px 32px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  #landing.off{display:none;}
+  .crisis-card{
+    width:100%;
+    max-width:620px;
+    background:var(--white);
+    border:2px solid #b3261e;
+    border-radius:14px;
+    padding:24px 22px 22px;
+    text-align:center;
+    box-shadow:0 4px 18px rgba(179,38,30,.12);
+  }
+  .crisis-eyebrow{
+    font-size:.74rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:#8f1d17;
+    font-weight:700;
+  }
+  .crisis-number{
+    font-family:'Iowan Old Style','Georgia',serif;
+    font-size:3.6rem;
+    font-weight:700;
+    color:#b3261e;
+    line-height:1.05;
+    margin:8px 0 2px;
+  }
+  .crisis-number small{font-size:1.5rem;font-weight:600;color:var(--ink);}
+  .crisis-desc{font-size:1rem;margin:6px 0 14px;color:var(--ink);line-height:1.4;}
+  .btn-call{
+    display:inline-block;
+    background:#b3261e;
+    color:#fff;
+    text-decoration:none;
+    font-weight:700;
+    font-size:1.1rem;
+    padding:14px 28px;
+    border-radius:10px;
+  }
+  .btn-call:hover,.btn-call:focus-visible{background:#8f1d17;}
+  .crisis-hint{font-size:.85rem;color:var(--slate);margin:12px 0 0;line-height:1.4;}
+  .crisis-urgent{
+    font-size:.88rem;
+    margin:12px 0 0;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+  }
+  .btn-map{
+    background:var(--teal-dk);
+    color:#fff;
+    border:none;
+    font-family:Helvetica,Arial,sans-serif;
+    font-weight:700;
+    font-size:1.02rem;
+    padding:14px 26px;
+    border-radius:10px;
+    cursor:pointer;
+    width:100%;
+    max-width:620px;
+  }
+  .btn-map:hover,.btn-map:focus-visible{background:var(--teal);}
+  .disclaimer{
+    width:100%;
+    max-width:620px;
+    background:#efe9d8;
+    border-left:4px solid var(--gold);
+    border-radius:6px;
+    padding:12px 14px;
+    font-size:.82rem;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .disclaimer b{color:var(--teal-dk);}
+  .disclaimer a{color:var(--teal-dk);}
+
+  #main{flex:1;display:none;min-height:0;}
+  #main.on{display:flex;}
+
+  .clear-btn{
+    background:none;
+    border:none;
+    color:var(--teal);
+    text-decoration:underline;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.72rem;
+    cursor:pointer;
+    padding:0 0 0 8px;
+  }
+  .clear-btn[hidden]{display:none;}
+
+  #sidebar{
+    width:300px;
+    min-width:240px;
+    background:var(--white);
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+    padding:16px 16px 40px;
+  }
+  #sidebar h2{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.68rem;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--slate);
+    margin:18px 0 8px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:4px;
+  }
+  #sidebar h2:first-child{margin-top:0;}
+
+  .filter-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:5px 4px;
+    border-radius:5px;
+    cursor:pointer;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.82rem;
+  }
+  .filter-row:hover{background:#f0ece0;}
+  .swatch{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.25);}
+  .filter-row input{accent-color:var(--teal);}
+  .count{margin-left:auto;color:var(--slate);font-size:.72rem;}
+
+  #search-box{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.85rem;
+    background:var(--paper);
+  }
+
+  .stat-line{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.72rem;
+    color:var(--slate);
+    margin-top:4px;
+  }
+
+  #results-list{
+    margin:10px 0 4px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    max-height:340px;
+    overflow-y:auto;
+  }
+  .result-card{
+    border:1px solid var(--line);
+    border-left:4px solid var(--teal);
+    border-radius:6px;
+    padding:7px 9px;
+    cursor:pointer;
+    background:var(--paper);
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  .result-card:hover{background:#efe9d8;}
+  .result-card .rc-name{
+    font-family:'Iowan Old Style','Georgia',serif;
+    font-weight:700;
+    font-size:.86rem;
+    color:var(--teal-dk);
+    line-height:1.25;
+  }
+  .result-card .rc-addr{
+    font-size:.74rem;
+    color:var(--ink);
+    margin-top:2px;
+  }
+  .result-card .rc-tag{
+    font-size:.62rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--slate);
+    margin-top:2px;
+  }
+  .result-card .rc-go{
+    display:inline-block;
+    margin-top:4px;
+    font-size:.72rem;
+    color:var(--teal);
+    font-weight:700;
+    text-decoration:none;
+  }
+  .result-card .rc-go:hover{text-decoration:underline;}
+  .popup-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .gm-btn{
+    background:var(--teal-dk);
+    color:#fff !important;
+    text-decoration:none;
+    font-size:.74rem;
+    font-weight:700;
+    padding:6px 10px;
+    border-radius:6px;
+  }
+  .gm-btn.gm-alt{background:transparent;color:var(--teal-dk) !important;border:1px solid var(--teal-dk);}
+  .result-empty{
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.78rem;
+    color:var(--slate);
+    font-style:italic;
+    padding:4px 2px;
+  }
+
+  #map{flex:1;}
+
+  .leaflet-popup-content-wrapper{
+    background:var(--white);
+    border-radius:8px;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  .popup-title{
+    font-family:'Iowan Old Style','Georgia',serif;
+    font-size:1rem;
+    font-weight:700;
+    color:var(--teal-dk);
+    margin-bottom:2px;
+  }
+  .popup-tag{
+    display:inline-block;
+    font-size:.62rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    padding:2px 7px;
+    border-radius:10px;
+    color:white;
+    margin-bottom:6px;
+  }
+  .popup-row{font-size:.8rem;margin:3px 0;line-height:1.35;}
+  .popup-row b{color:var(--slate);font-weight:600;}
+
+  footer{
+    background:var(--teal-dk);
+    color:#cfe3df;
+    font-family:Helvetica,Arial,sans-serif;
+    font-size:.68rem;
+    padding:6px 20px;
+    text-align:center;
+  }
+
+  @media (max-width:720px){
+    #main{flex-direction:column;}
+    #sidebar{width:100%;max-height:38vh;border-right:none;border-bottom:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Mapa (no oficial) de efectores con servicio de atención especializada en Salud Mental en la provincia de Mendoza</h1>
+    <div class="hdr-actions">
+      <a class="hdr-crisis" href="tel:148" aria-label="Llamar a la línea de crisis en salud mental, 148 opción 0">Crisis: 148 · opción 0</a>
+      <button class="hdr-home" id="btn-home" type="button" hidden>Inicio</button>
+    </div>
+  </header>
+
+  <section id="landing" aria-label="Pantalla principal">
+    <div class="crisis-card">
+      <div class="crisis-eyebrow">Línea de crisis en salud mental</div>
+      <div class="crisis-number">148 <small>· opción 0</small></div>
+      <p class="crisis-desc">Orientación, contención y asistencia en salud mental. Servicio público de la provincia de Mendoza.</p>
+      <a class="btn-call" href="tel:148">Llamar al 148</a>
+      <p class="crisis-hint">Cuando te atiendan el menú, marcá la <b>opción 0</b>.</p>
+      <p class="crisis-urgent"><b>Si hay riesgo inmediato para la vida,</b> llamá al <b>911</b>.</p>
+    </div>
+
+    <button class="btn-map" id="btn-map" type="button">Ver mapa y listado de efectores</button>
+
+    <div class="disclaimer">
+      <b>Iniciativa particular, no oficial.</b> Este mapa no pertenece a ningún organismo público ni cuenta con su respaldo. Los datos fueron extraídos de publicaciones oficiales en sitios del Ministerio de Salud y Deportes de Mendoza y están <b>actualizados al 01/10/2026</b>. Pueden haber cambiado: confirmá con el centro antes de concurrir.<br>
+      Confeccionó: Miguel Silva · Contacto: <a href="mailto:andeslogistica274@gmail.com">andeslogistica274@gmail.com</a>
+    </div>
+  </section>
+
+  <div id="main">
+    <div id="sidebar">
+      <input id="search-box" type="text" placeholder="Buscar por nombre o departamento…">
+      <div class="stat-line"><span id="stat-line"></span><button class="clear-btn" id="clear-filters" type="button" hidden>Quitar selección</button></div>
+      <div id="results-list"></div>
+
+      <h2>Tipo de dispositivo</h2>
+      <div id="category-list"></div>
+
+      <h2>Departamento</h2>
+      <div id="dept-list"></div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <footer>
+    Mapa no oficial (iniciativa particular) · Datos extraídos de publicaciones oficiales del Ministerio de Salud y Deportes de Mendoza · Actualizado al 01/10/2026 · Algunas ubicaciones son aproximadas · Confeccionó: Miguel Silva · <a href="mailto:andeslogistica274@gmail.com" style="color:#cfe3df;">andeslogistica274@gmail.com</a>
+  </footer>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// DATOS: efectores de salud mental de la Provincia de Mendoza
+// Fuente: publicaciones oficiales en sitios del Ministerio de Salud
+// y Deportes de Mendoza. Actualizado al 01/10/2026. Iniciativa
+// particular, no oficial.
+// ---------------------------------------------------------------
+
+const CATEGORIES = {
+  hospital:   { label: "Hospitales generales (Serv. Salud Mental)", color: "#2f5d5a" },
+  monovalente:{ label: "Hospitales especializados / urgencias", color: "#b5622f" },
+  infantojuv: { label: "Centros Infanto Juveniles", color: "#c99a3c" },
+  cpaa:       { label: "Centros Prev. y Asist. en Adicciones (CPAA)", color: "#6b4d75" },
+  comunitario:{ label: "Centros regionales / comunitarios", color: "#516b78" },
+  coordinacion:{ label: "Coordinación / sede central", color: "#8a8a8a" }
+};
+
+const centros = [
+// ---------------- HOSPITALES GENERALES CON SERVICIO DE SALUD MENTAL ----------------
+{ nombre:"Hospital Central", cat:"hospital", depto:"Ciudad de Mendoza",
+  direccion:"Alem y Salta, Ciudad", telefono:"449-0500 int. 210", email:"",
+  detalle:"3er nivel. Ambulatoria / Internación / Guardia / Interconsulta. A partir de 15 años.",
+  lat:-32.8930, lon:-68.8497 },
+
+{ nombre:"Hospital Luis Lagomaggiore", cat:"hospital", depto:"Ciudad de Mendoza",
+  direccion:"Timoteo Gordillo s/n, Ciudad", telefono:"385-4759", email:"saludmentallago@gmail.com",
+  detalle:"Ambulatoria / Salud Mental de enlace / Internación. A partir de 15 años con comorbilidad clínica.",
+  lat:-32.8791, lon:-68.8562 },
+
+{ nombre:"Hospital N. J. Lencinas", cat:"hospital", depto:"Godoy Cruz",
+  direccion:"Talcahuano 2194, Godoy Cruz", telefono:"427-2600 int. 107", email:"lustorniolo@hotmail.com",
+  detalle:"Ambulatoria. Adultos de Godoy Cruz sin cobertura social. Admisión miércoles (turno al 148).",
+  lat:-32.9407, lon:-68.8262 },
+
+{ nombre:"Hospital Humberto Notti", cat:"hospital", depto:"Guaymallén",
+  direccion:"Bandera de los Andes 2603, Guaymallén", telefono:"413-2720", email:"saludmentalnotti@gmail.com",
+  detalle:"Internación. De 0 a 14 años 11 meses.",
+  lat:-32.8817, lon:-68.7975 },
+
+{ nombre:"Hospital Regional Diego Paroissien", cat:"hospital", depto:"Maipú",
+  direccion:"Godoy Cruz 431, Maipú", telefono:"497-2277/88", email:"saludmental-paroissien@mendoza.gov.ar",
+  detalle:"Ambulatoria e internación. Infanto-juvenil (desde 6 años), adolescentes y adultos.",
+  lat:-32.9767, lon:-68.7842 },
+
+{ nombre:"Hospital A. Metraux", cat:"hospital", depto:"Maipú",
+  direccion:"España 162, Fray Luis Beltrán, Maipú", telefono:"492-1717/1000", email:"natiepsico@yahoo.com.ar",
+  detalle:"Ambulatoria. Adolescentes desde 15 años y adultos.",
+  lat:-33.0119, lon:-68.7458 },
+
+{ nombre:"Hospital Héctor Elías Gailhac", cat:"hospital", depto:"Las Heras",
+  direccion:"Aristóbulo del Valle 1359, Algarrobal, Las Heras", telefono:"451-1301", email:"itapotaschner@gmail.com",
+  detalle:"Guardia 24 hs. Todas las edades.",
+  lat:-32.8156, lon:-68.8697 },
+
+{ nombre:"Hospital Dr. Ramón Carrillo", cat:"hospital", depto:"Las Heras",
+  direccion:"Martín Fierro 1724, Las Heras", telefono:"430-8666", email:"carrillosaludmental@gmail.com",
+  detalle:"Ambulatoria / Internación / Interconsulta. Infanto-juvenil hasta 17 años 11 meses, residentes de Las Heras.",
+  lat:-32.8419, lon:-68.8442 },
+
+{ nombre:"Hospital Perrupato", cat:"hospital", depto:"General San Martín",
+  direccion:"Boulogne Sur Mer y Abdala, San Martín", telefono:"(0263) 425-9350", email:"smentalperrupato20@gmail.com",
+  detalle:"Interconsulta / Ambulatoria. Infanto-juvenil y adultos del departamento.",
+  lat:-33.0805, lon:-68.4708 },
+
+{ nombre:"Hospital Carlos Saporiti", cat:"hospital", depto:"Rivadavia",
+  direccion:"Lamadrid e Independencia, Rivadavia", telefono:"444-2253 int. 122", email:"saludmentalsaporiti@gmail.com",
+  detalle:"Interconsulta / Ambulatoria. A partir de 18 años.",
+  lat:-33.1872, lon:-68.4636 },
+
+{ nombre:"Hospital Arenas Raffo", cat:"hospital", depto:"Santa Rosa",
+  direccion:"Av. San Martín 643, Santa Rosa", telefono:"(0263) 449-7028 / 7310 / 7313", email:"",
+  detalle:"Internación / Ambulatoria. Adultos; internación por intoxicación aguda.",
+  lat:-33.2528, lon:-68.1667 },
+
+{ nombre:"Hospital Regional Antonio J. Scaravelli", cat:"hospital", depto:"Tunuyán",
+  direccion:"Güemes 1441, Tunuyán", telefono:"(02622) 422324", email:"saludmental_scaravelli@mendoza.gov.ar",
+  detalle:"Ambulatoria / Internación / Atención en crisis, a partir de 18 años.",
+  lat:-33.5772, lon:-69.0181 },
+
+{ nombre:"Hospital General Las Heras (sede Tupungato)", cat:"hospital", depto:"Tupungato",
+  direccion:"Las Heras y Monseñor Fernández, Tupungato", telefono:"(02622) 488293", email:"saludmentaltupungato@gmail.com",
+  detalle:"Ambulatoria / Internación. Cuenta con Servicio de Internación Diferenciada de Salud Mental (4 camas exclusivas), inaugurado en 2025, con lo que el Valle de Uco (Scaravelli, Tagarelli y este hospital) suma 16 camas específicas en la región.",
+  lat:-33.3833, lon:-69.1500 },
+
+{ nombre:"Hospital Teodoro J. Schestakow", cat:"hospital", depto:"San Rafael",
+  direccion:"Comandante Torres 150, San Rafael", telefono:"(0260) 442-2580", email:"saludmentalhosp.schestakow@gmail.com",
+  detalle:"Ambulatoria / Internación / Interconsulta, a partir de 18 años. 20 camas de internación.",
+  lat:-34.6177, lon:-68.3301 },
+
+{ nombre:"Hospital Enfermeros Argentinos", cat:"hospital", depto:"General Alvear",
+  direccion:"Mitre 400, General Alvear", telefono:"(02625) 422165 / 422857", email:"fpaigos@gmail.com",
+  detalle:"Internación de agudos con seguimiento de Salud Mental. Adolescentes-adultos.",
+  lat:-34.9764, lon:-67.6820 },
+
+{ nombre:"Hospital Malargüe", cat:"hospital", depto:"Malargüe",
+  direccion:"Av. Roca y E. Aldao, Malargüe", telefono:"", email:"",
+  detalle:"Ambulatoria. Sin cobertura de salud. Admisión adultos lunes / infanto miércoles.",
+  lat:-35.4747, lon:-69.5867 },
+
+{ nombre:"Hospital Victorino Tagarelli", cat:"hospital", depto:"San Carlos",
+  direccion:"San Carlos (consultorios externos)", telefono:"", email:"",
+  detalle:"Ambulatoria mediante admisión interdisciplinaria. Desde mayo de 2025 cuenta además con Servicio de Internación Diferenciada de Salud Mental (6 camas específicas).",
+  lat:-33.7667, lon:-69.0500 },
+
+// ---------------- HOSPITALES ESPECIALIZADOS / URGENCIAS ----------------
+{ nombre:"Hospital Escuela El Sauce", cat:"monovalente", depto:"Guaymallén",
+  direccion:"Alfonso XIII s/n, Bermejo, Guaymallén", telefono:"413-8700 (guardia: 413-8711)", email:"hosp-elsauce@mendoza.gov.ar",
+  detalle:"3er nivel especializado en Salud Mental. Ambulatorio/Internación/Guardia, 24 hs. Desde 18 años. Georreferencia: Guaymallén, Lavalle, Maipú, Luján, Zona Este y Zona Sur.",
+  lat:-32.8703, lon:-68.7761 },
+
+{ nombre:"Hospital Escuela Dr. Carlos Pereyra", cat:"monovalente", depto:"Ciudad de Mendoza",
+  direccion:"Ituzaingó 2835, Ciudad", telefono:"385-9100 / 9103 / 9104", email:"hosp-pereyra@mendoza.gov.ar",
+  detalle:"2° y 3° nivel, monovalente, internación y ambulatorio 24 hs. Desde 18 años. Georreferencia: Ciudad, Godoy Cruz, Las Heras.",
+  lat:-32.8977, lon:-68.8447 },
+
+{ nombre:"CIPAU — Centro Integral Provincial de Atención de la Urgencia del Adolescente", cat:"monovalente", depto:"Guaymallén",
+  direccion:"9 de Julio y Pedro Goyena, Jesús Nazareno, Guaymallén", telefono:"261-362-7786", email:"cipau@mendoza.gov.ar",
+  detalle:"24 hs, 365 días. Urgencias de 14 a 17 años y 11 meses. Internación aguda y ambulatorio intensivo.",
+  lat:-32.8958, lon:-68.8014 },
+
+// ---------------- CENTROS INFANTO JUVENILES ----------------
+{ nombre:"Coordinación Centros Infanto Juveniles", cat:"coordinacion", depto:"Ciudad de Mendoza",
+  direccion:"Morón 332, Ciudad", telefono:"429-4017 / 425-3964 int. 103", email:"",
+  detalle:"Coordinación general de la red de Centros Infanto Juveniles (hasta 18 años).",
+  lat:-32.8862, lon:-68.8358 },
+
+{ nombre:"Centro Infanto Juvenil N°1 — Godoy Cruz", cat:"infantojuv", depto:"Godoy Cruz",
+  direccion:"Joaquín V. González 390, Godoy Cruz", telefono:"261-750-8671 (WhatsApp)", email:"infantogodoycruz@gmail.com",
+  detalle:"Lunes a viernes de 7 a 18 h.",
+  lat:-32.9245, lon:-68.8447 },
+
+{ nombre:"Centro Infanto Juvenil N°2 — Capital", cat:"infantojuv", depto:"Ciudad de Mendoza",
+  direccion:"Ituzaingó 2588, Ciudad", telefono:"420-7424", email:"infanto2capital@yahoo.com",
+  detalle:"Lunes a viernes de 8 a 17 h.",
+  lat:-32.8940, lon:-68.8420 },
+
+{ nombre:"Centro Infanto Juvenil N°3 — Rodeo del Medio", cat:"infantojuv", depto:"Maipú",
+  direccion:"Ruta 50 n°786, Rodeo del Medio", telefono:"495-2666", email:"infantorodeo@mendoza.gov.ar",
+  detalle:"Lunes a viernes de 8 a 16 h.",
+  lat:-32.9686, lon:-68.6928 },
+
+{ nombre:"Centro Infanto Juvenil N°4 — Tunuyán", cat:"infantojuv", depto:"Tunuyán",
+  direccion:"Godoy Cruz 1290, Tunuyán", telefono:"(02622) 422935", email:"infantojuvenil-4@hotmail.com",
+  detalle:"Lunes a viernes de 8 a 18 h.",
+  lat:-33.5772, lon:-69.0181 },
+
+{ nombre:"Centro Infanto Juvenil N°5 — San Martín", cat:"infantojuv", depto:"General San Martín",
+  direccion:"Gutiérrez 42, San Martín", telefono:"(0263) 443-2957", email:"centroinfanto5regioneste@hotmail.com",
+  detalle:"Lunes 7:30-18:30 h; martes a viernes 7:30-14 h.",
+  lat:-33.0805, lon:-68.4708 },
+
+{ nombre:"Centro Infanto Juvenil N°6 — Lavalle", cat:"infantojuv", depto:"Lavalle",
+  direccion:"Costa de Araujo, Lavalle", telefono:"0621-545-2802", email:"infantolavalle@hotmail.com",
+  detalle:"Lunes a viernes de 8 a 14 h.",
+  lat:-32.6167, lon:-68.5833 },
+
+{ nombre:"Centro Infanto Juvenil N°7 — San Rafael", cat:"infantojuv", depto:"San Rafael",
+  direccion:"Córdoba 110, San Rafael", telefono:"(0260) 444-5947", email:"infantosanrafael@gmail.com",
+  detalle:"Lunes a viernes 7-13 h; lunes a jueves 14-18 h.",
+  lat:-34.6177, lon:-68.3301 },
+
+{ nombre:"Centro Infanto Juvenil N°8 — Guaymallén", cat:"infantojuv", depto:"Guaymallén",
+  direccion:"B° Avenida 2, calle Río Juramento 5587 (y Ascasubi), Villa Nueva, Guaymallén", telefono:"261-750-8675", email:"claudiamottaw@gmail.com",
+  detalle:"Lunes a viernes de 8 a 14 h.",
+  lat:-32.8925, lon:-68.8180 },
+
+{ nombre:"Centro Infanto Juvenil N°9 — Tupungato", cat:"infantojuv", depto:"Tupungato",
+  direccion:"Hipólito Irigoyen 48, Tupungato", telefono:"261-389-8035", email:"infantotupungato@mendoza.gov.ar",
+  detalle:"Lunes, martes, miércoles y viernes 8-16 h; jueves 8-18 h.",
+  lat:-33.3833, lon:-69.1500 },
+
+{ nombre:"Centro Infanto Juvenil N°10 — General Alvear", cat:"infantojuv", depto:"General Alvear",
+  direccion:"Laprida 292, General Alvear", telefono:"2625-643874 / Cel. 261-711-7348", email:"centroinfantojuvenil10@mendoza.gov.ar",
+  detalle:"Atención ambulatoria interdisciplinaria de salud mental infanto juvenil, hasta los 18 años. Lunes a viernes de 8 a 16 h.",
+  lat:-34.981150, lon:-67.686547, exacta:true },
+
+// ---------------- CPAA — CENTROS PREVENTIVOS ASISTENCIALES EN ADICCIONES ----------------
+{ nombre:"CPAA Capital \"Tejada Gómez\"", cat:"cpaa", depto:"Ciudad de Mendoza",
+  direccion:"Pasaje P. Vargas 598, Ciudad", telefono:"429-2081 / 261-750-8664", email:"tejadagomezcpaa@gmail.com",
+  detalle:"Georreferencia: Capital y Guaymallén. Lunes a viernes 8-16 h.",
+  lat:-32.8901, lon:-68.8300 },
+
+{ nombre:"CPAA Godoy Cruz", cat:"cpaa", depto:"Godoy Cruz",
+  direccion:"Salvador Arias 1072, Godoy Cruz", telefono:"422-8633 / 261-244-0952", email:"cpaagodoycruz@yahoo.com.ar",
+  detalle:"Georreferencia: Godoy Cruz y sectores de Maipú. Lunes a viernes 8-14 h.",
+  lat:-32.9330, lon:-68.8280 },
+
+{ nombre:"CPAA Las Heras", cat:"cpaa", depto:"Las Heras",
+  direccion:"Dorrego 63, Las Heras", telefono:"261-750-8665", email:"cpaalasheras2020@gmail.com",
+  detalle:"Georreferencia: Las Heras y Lavalle. Lunes a viernes 8-13 h.",
+  lat:-32.8500, lon:-68.8228 },
+
+{ nombre:"CPAA Luján de Cuyo (funcionamiento provisorio)", cat:"cpaa", depto:"Godoy Cruz",
+  direccion:"Armani 1880, Godoy Cruz", telefono:"261-247-3293", email:"cpalujan@outlook.com",
+  detalle:"Funciona provisoriamente en Godoy Cruz. Georreferencia: Luján de Cuyo y sectores de Maipú. Lunes a viernes 8-14 h.",
+  lat:-32.9314, lon:-68.8246 },
+
+{ nombre:"CPAA Zona Este", cat:"cpaa", depto:"General San Martín",
+  direccion:"Gutiérrez 42, San Martín", telefono:"(0263) 443-3783", email:"cpaazonaeste2024@gmail.com",
+  detalle:"Georreferencia: San Martín, Junín, Rivadavia, Santa Rosa, La Paz. Lunes a viernes 8-13 h.",
+  lat:-33.0805, lon:-68.4708 },
+
+{ nombre:"CPAA Tunuyán", cat:"cpaa", depto:"Tunuyán",
+  direccion:"Reginato 1330, B° Los Cóndores, Tunuyán", telefono:"(02622) 383-0032", email:"",
+  detalle:"Georreferencia: Tunuyán. Lunes a viernes de 8 a 17 h.",
+  lat:-33.5820, lon:-69.0150 },
+
+{ nombre:"CPAA San Carlos", cat:"cpaa", depto:"San Carlos",
+  direccion:"Bernardo Quiroga y Constitución, Eugenio Bustos, San Carlos", telefono:"261-753-2088", email:"cpaa.eugenio.sancarlos@gmail.com",
+  detalle:"Georreferencia: San Carlos.",
+  lat:-33.7667, lon:-69.0500 },
+
+{ nombre:"CPAA Tupungato", cat:"cpaa", depto:"Tupungato",
+  direccion:"Almirante Brown 172, Tupungato", telefono:"261-755-3208 / 6", email:"cpatupungato@gmail.com",
+  detalle:"Georreferencia: Tupungato.",
+  lat:-33.3833, lon:-69.1500 },
+
+{ nombre:"CPAA San Rafael", cat:"cpaa", depto:"San Rafael",
+  direccion:"Av. El Libertador 217, San Rafael", telefono:"261-750-8667", email:"cpaasanrafael@gmail.com",
+  detalle:"Georreferencia: San Rafael. Lunes a viernes 8-14 h.",
+  lat:-34.6189, lon:-68.3310, exacta:true },
+
+{ nombre:"CPAA General Alvear", cat:"cpaa", depto:"General Alvear",
+  direccion:"Emilio Civit 400 (Hospital Enfermeros Argentinos), General Alvear", telefono:"(02625) 422165 int. 848", email:"cpaaalvear@gmail.com",
+  detalle:"Georreferencia: General Alvear. Lunes a viernes 8-13 y 15-18 h.",
+  lat:-34.9764, lon:-67.6820 },
+
+{ nombre:"CPAA Malargüe", cat:"cpaa", depto:"Malargüe",
+  direccion:"Pampa Palauco 827, B° El Payén, Malargüe", telefono:"261-750-8669", email:"centroadiccionesmalargue@yahoo.com",
+  detalle:"Georreferencia: Malargüe. Lunes a viernes 8-13 h.",
+  lat:-35.4747, lon:-69.5867 },
+
+{ nombre:"CPAA Lavalle", cat:"cpaa", depto:"Lavalle",
+  direccion:"Doctor Moreno s/n, Costa de Araujo, Lavalle", telefono:"261-753-2087", email:"cconsumoproblematicocostalv@gmail.com",
+  detalle:"Georreferencia: Lavalle. Lunes a viernes de 8 a 17 h. Inaugurado en mayo de 2025; funciona además como Casa de Convivencia para personas mayores de 14 años con consumos problemáticos, con orientación familiar y dispositivo de reinserción comunitaria.",
+  lat:-32.6167, lon:-68.5833 },
+
+{ nombre:"Centro Integral de Salud Mental y Consumos Problemáticos — Palmira", cat:"cpaa", depto:"General San Martín",
+  direccion:"Soberanía Nacional s/n, Palmira (ex Centro de Salud Persico)", telefono:"Cel. 261-754-4586", email:"cismycs-palmira@mendoza.gov.ar",
+  detalle:"Georreferencia: Palmira y zona.",
+  lat:-33.050606, lon:-68.565085, exacta:true },
+
+// ---------------- CENTROS REGIONALES / COMUNITARIOS ----------------
+{ nombre:"Centro Regional de Salud Mental Familiar y Comunitaria N°1", cat:"comunitario", depto:"Maipú",
+  direccion:"Perón 70, Maipú", telefono:"497-3449", email:"crsmfycn1@gmail.com",
+  detalle:"Ambulatoria, adolescentes y adultos. Lunes a viernes 8-18 h, sábados 9-13 h.",
+  lat:-32.9836, lon:-68.7928 },
+
+{ nombre:"Dispositivo Ambulatorio \"Modo SI\"", cat:"comunitario", depto:"Godoy Cruz",
+  direccion:"Armani 1880, Godoy Cruz", telefono:"", email:"modosimza@gmail.com",
+  detalle:"Demanda espontánea, 12 a 24 años. Lunes a viernes 9-17 h.",
+  lat:-32.9310, lon:-68.8250 },
+
+{ nombre:"ESIIA — Espacio de Salud Integral de Infancias y Adolescencias", cat:"comunitario", depto:"Rivadavia",
+  direccion:"Ruta 62, Rivadavia", telefono:"", email:"eiinfanciasadolescencias@gmail.com",
+  detalle:"De 0 a 17 años, georreferencia Rivadavia. Lunes a jueves 9-17 h, viernes 9-14 h.",
+  lat:-33.1872, lon:-68.4636 },
+
+{ nombre:"Centro de Día \"El Faro\"", cat:"comunitario", depto:"Maipú",
+  direccion:"Ruta 7 y Los Álamos, Beltrán, Maipú", telefono:"", email:"elfarocentrodediamdz@gmail.com",
+  detalle:"12 a 17 años 11 meses, padecimientos subjetivos/salud mental compleja. Lunes a viernes 8:30-15:30 h.",
+  lat:-33.0075, lon:-68.7433 },
+];
+
+// ---------------------------------------------------------------
+// MAPA
+// ---------------------------------------------------------------
+const map = L.map('map', { zoomControl: true }).setView([-33.9, -68.9], 8);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  maxZoom: 18
+}).addTo(map);
+
+function makeIcon(color){
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:16px;height:16px;border-radius:50% 50% 50% 0;
+      background:${color};transform:rotate(-45deg);
+      border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4);
+    "></div>`,
+    iconSize:[16,16],
+    iconAnchor:[8,16],
+    popupAnchor:[0,-16]
+  });
+}
+
+// Sin selección = no se filtra (se ven todos). Al tildar una o más opciones, se muestran solo esas.
+const activeCats = new Set();
+const activeDepts = new Set();
+let searchTerm = "";
+
+// Enlaces a Google Maps. Si la ubicación fue verificada (exacta) se usan las
+// coordenadas; si no, se busca por dirección para que Google la ubique mejor.
+function gmapsQuery(c){
+  if(c.exacta) return `${c.lat},${c.lon}`;
+  const dir = c.direccion.replace(/\s*\([^)]*\)/g, '');
+  const yaTieneLugar = dir.toLowerCase().includes(c.depto.toLowerCase());
+  return `${dir}${yaTieneLugar ? '' : ', ' + c.depto}, Mendoza, Argentina`;
+}
+function gmapsView(c){
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(gmapsQuery(c));
+}
+function gmapsDir(c){
+  return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(gmapsQuery(c));
+}
+
+const markers = centros.map(c => {
+  const marker = L.marker([c.lat, c.lon], { icon: makeIcon(CATEGORIES[c.cat].color) });
+  const tagColor = CATEGORIES[c.cat].color;
+  marker.bindPopup(`
+    <div class="popup-tag" style="background:${tagColor}">${CATEGORIES[c.cat].label}</div>
+    <div class="popup-title">${c.nombre}</div>
+    <div class="popup-row"><b>Depto:</b> ${c.depto}</div>
+    <div class="popup-row"><b>Dirección:</b> ${c.direccion}</div>
+    ${c.telefono ? `<div class="popup-row"><b>Tel:</b> ${c.telefono}</div>` : ""}
+    ${c.email ? `<div class="popup-row"><b>Email:</b> ${c.email}</div>` : ""}
+    <div class="popup-row" style="margin-top:6px;color:#444;">${c.detalle}</div>
+    <div class="popup-links">
+      <a class="gm-btn" href="${gmapsDir(c)}" target="_blank" rel="noopener">Cómo llegar</a>
+      <a class="gm-btn gm-alt" href="${gmapsView(c)}" target="_blank" rel="noopener">Ver en Google Maps</a>
+    </div>
+  `);
+  return { data: c, marker };
+});
+
+const layerGroup = L.layerGroup(markers.map(m=>m.marker)).addTo(map);
+
+function refresh(){
+  let visible = 0;
+  const visibleEntries = [];
+  markers.forEach((entry) => {
+    const { data, marker } = entry;
+    const matchCat = activeCats.size === 0 || activeCats.has(data.cat);
+    const matchDept = activeDepts.size === 0 || activeDepts.has(data.depto);
+    const matchSearch = searchTerm === "" ||
+      data.nombre.toLowerCase().includes(searchTerm) ||
+      data.depto.toLowerCase().includes(searchTerm) ||
+      data.direccion.toLowerCase().includes(searchTerm);
+    const show = matchCat && matchDept && matchSearch;
+    if(show){
+      if(!map.hasLayer(marker)) layerGroup.addLayer(marker);
+      visible++;
+      visibleEntries.push(entry);
+    } else {
+      if(map.hasLayer(marker)) layerGroup.removeLayer(marker);
+    }
+  });
+  const filtering = activeCats.size > 0 || activeDepts.size > 0 || searchTerm !== "";
+  document.getElementById('stat-line').textContent = filtering
+    ? `${visible} de ${centros.length} efectores`
+    : `${centros.length} efectores`;
+  document.getElementById('clear-filters').hidden = !(activeCats.size > 0 || activeDepts.size > 0);
+
+  // Lista de resultados (nombre + dirección), ordenada alfabéticamente
+  const listEl = document.getElementById('results-list');
+  listEl.innerHTML = "";
+  if(visibleEntries.length === 0){
+    listEl.innerHTML = `<div class="result-empty">No hay efectores que coincidan con la búsqueda/filtros.</div>`;
+    return;
+  }
+  visibleEntries
+    .slice()
+    .sort((a,b)=> a.data.nombre.localeCompare(b.data.nombre, 'es'))
+    .forEach(({data, marker}) => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.style.borderLeftColor = CATEGORIES[data.cat].color;
+      card.innerHTML = `
+        <div class="rc-name">${data.nombre}</div>
+        <div class="rc-addr">${data.direccion}${data.telefono ? " · " + data.telefono : ""}</div>
+        <div class="rc-tag">${data.depto} — ${CATEGORIES[data.cat].label}</div>
+        <a class="rc-go" href="${gmapsDir(data)}" target="_blank" rel="noopener">Cómo llegar ↗</a>
+      `;
+      card.querySelector('.rc-go').addEventListener('click', (ev)=> ev.stopPropagation());
+      card.addEventListener('click', ()=>{
+        map.setView(marker.getLatLng(), 13, { animate:true });
+        marker.openPopup();
+      });
+      listEl.appendChild(card);
+    });
+}
+
+// ---- Sidebar: categorías ----
+const catListEl = document.getElementById('category-list');
+Object.entries(CATEGORIES).forEach(([key, info]) => {
+  const count = centros.filter(c=>c.cat===key).length;
+  const row = document.createElement('label');
+  row.className = 'filter-row';
+  row.innerHTML = `
+    <input type="checkbox" data-cat="${key}">
+    <span class="swatch" style="background:${info.color}"></span>
+    <span>${info.label}</span>
+    <span class="count">${count}</span>
+  `;
+  row.querySelector('input').addEventListener('change', (e)=>{
+    if(e.target.checked) activeCats.add(key); else activeCats.delete(key);
+    refresh();
+  });
+  catListEl.appendChild(row);
+});
+
+// ---- Sidebar: departamentos ----
+const deptListEl = document.getElementById('dept-list');
+const deptCounts = {};
+centros.forEach(c => deptCounts[c.depto] = (deptCounts[c.depto]||0)+1);
+Object.keys(deptCounts).sort().forEach(dep => {
+  const row = document.createElement('label');
+  row.className = 'filter-row';
+  row.innerHTML = `
+    <input type="checkbox" data-dept="${dep}">
+    <span>${dep}</span>
+    <span class="count">${deptCounts[dep]}</span>
+  `;
+  row.querySelector('input').addEventListener('change', (e)=>{
+    if(e.target.checked) activeDepts.add(dep); else activeDepts.delete(dep);
+    refresh();
+  });
+  deptListEl.appendChild(row);
+});
+
+// ---- Búsqueda ----
+document.getElementById('search-box').addEventListener('input', (e)=>{
+  searchTerm = e.target.value.trim().toLowerCase();
+  refresh();
+});
+
+// ---- Quitar selección de filtros ----
+document.getElementById('clear-filters').addEventListener('click', ()=>{
+  activeCats.clear();
+  activeDepts.clear();
+  document.querySelectorAll('#category-list input, #dept-list input').forEach(i => i.checked = false);
+  refresh();
+});
+
+// ---- Pantallas: inicio (línea 148) <-> mapa ----
+const landingEl = document.getElementById('landing');
+const mainEl = document.getElementById('main');
+const homeBtn = document.getElementById('btn-home');
+
+function showMap(){
+  landingEl.classList.add('off');
+  mainEl.classList.add('on');
+  homeBtn.hidden = false;
+  map.invalidateSize();
+}
+function showHome(){
+  mainEl.classList.remove('on');
+  landingEl.classList.remove('off');
+  homeBtn.hidden = true;
+  landingEl.scrollTop = 0;
+}
+document.getElementById('btn-map').addEventListener('click', showMap);
+homeBtn.addEventListener('click', showHome);
+
+refresh();
+</script>
+</body>
+</html>
